@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { sign } from 'jsonwebtoken';
 import BaseController from '../common/base.controller';
 import HTTPError from '../errors/http-error';
 import ILogger from '../logger/logger.interface';
@@ -10,12 +11,14 @@ import UserLoginDto from './dto/user-login.dto';
 import User from './user.entity';
 import UserService from './users.service';
 import ValidateMiddleware from '../common/validate.middleware';
+import IConfigService from '../config/config.service.interface';
 
 @injectable()
 export default class UsersController extends BaseController implements IUsersController {
 	constructor(
 		@inject(TYPES.ILogger) private loggerService: ILogger,
 		@inject(TYPES.UsersService) private usersService: UserService,
+		@inject(TYPES.ConfigService) private configService: IConfigService,
 	) {
 		super(loggerService);
 
@@ -54,11 +57,31 @@ export default class UsersController extends BaseController implements IUsersCon
 		res: Response,
 		next: NextFunction,
 	): Promise<void> {
-		this.loggerService.log(req.body);
 		const valid = await this.usersService.validateUser(req.body);
 
 		if (!valid) return next(new HTTPError(401, 'Authorization error'));
 
-		this.ok(res, { token: '123' });
+		const jwt = await this.signJWT(req.body.email, this.configService.get('JWT_SECRET'));
+		this.ok(res, { token: jwt });
+	}
+
+	private signJWT(email: string, secret: string): Promise<string> {
+		return new Promise<string>((res, rej) => {
+			sign(
+				{
+					email,
+					iat: Math.floor(Date.now() / 1000),
+				},
+				secret,
+				{
+					algorithm: 'HS256',
+				},
+				(err, token) => {
+					if (err) rej();
+
+					res(token as string);
+				},
+			);
+		});
 	}
 }
