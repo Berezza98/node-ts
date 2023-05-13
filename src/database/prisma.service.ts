@@ -12,8 +12,14 @@ export default class PrismaService {
 	}
 
 	async connect(): Promise<void> {
-		await this.client.$connect();
-		this.logger.log('Successfully connected to DB');
+		try {
+			await this.client.$connect();
+			this.logger.log('Successfully connected to DB');
+		} catch (e) {
+			if (e instanceof Error) {
+				this.logger.error('DB Connection failed ', e.message);
+			}
+		}
 	}
 
 	async disconnect(): Promise<void> {

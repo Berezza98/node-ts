@@ -28,7 +28,7 @@ export default class UsersController extends BaseController implements IUsersCon
 			},
 			{
 				path: '/login',
-				method: 'get',
+				method: 'post',
 				func: this.login,
 				middlewares: [new ValidateMiddleware(UserLoginDto)],
 			},
@@ -49,7 +49,16 @@ export default class UsersController extends BaseController implements IUsersCon
 		this.ok(res, newUser);
 	}
 
-	login(req: Request<{}, {}, UserLoginDto>, res: Response, next: NextFunction): void {
-		this.ok(res, { loggedIn: true });
+	async login(
+		req: Request<{}, {}, UserLoginDto>,
+		res: Response,
+		next: NextFunction,
+	): Promise<void> {
+		this.loggerService.log(req.body);
+		const valid = await this.usersService.validateUser(req.body);
+
+		if (!valid) return next(new HTTPError(401, 'Authorization error'));
+
+		this.ok(res, { token: '123' });
 	}
 }
