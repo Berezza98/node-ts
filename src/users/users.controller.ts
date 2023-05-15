@@ -12,6 +12,7 @@ import User from './user.entity';
 import UserService from './users.service';
 import ValidateMiddleware from '../common/validate.middleware';
 import IConfigService from '../config/config.service.interface';
+import AuthGuard from '../common/auth.guard';
 
 @injectable()
 export default class UsersController extends BaseController implements IUsersController {
@@ -34,6 +35,12 @@ export default class UsersController extends BaseController implements IUsersCon
 				method: 'post',
 				func: this.login,
 				middlewares: [new ValidateMiddleware(UserLoginDto)],
+			},
+			{
+				path: '/info',
+				method: 'get',
+				func: this.info,
+				middlewares: [new AuthGuard()],
 			},
 		]);
 	}
@@ -65,6 +72,12 @@ export default class UsersController extends BaseController implements IUsersCon
 		this.ok(res, { token: jwt });
 	}
 
+	async info({ user }: Request, res: Response, next: NextFunction): Promise<void> {
+		const userInfo = await this.usersService.getUserInfo(user);
+
+		this.ok(res, { email: userInfo?.email, id: userInfo?.id });
+	}
+
 	private signJWT(email: string, secret: string): Promise<string> {
 		return new Promise<string>((res, rej) => {
 			sign(
@@ -77,7 +90,7 @@ export default class UsersController extends BaseController implements IUsersCon
 					algorithm: 'HS256',
 				},
 				(err, token) => {
-					if (err) rej();
+					if (err) return rej();
 
 					res(token as string);
 				},

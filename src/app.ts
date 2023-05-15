@@ -8,6 +8,7 @@ import IConfigService from './config/config.service.interface';
 import IExceptionFilter from './errors/exception.filter.interface';
 import UsersController from './users/users.controller';
 import PrismaService from './database/prisma.service';
+import AuthMiddleware from './common/auth.middleware';
 
 @injectable()
 export default class App {
@@ -27,7 +28,10 @@ export default class App {
 	}
 
 	private useMiddlewares(): void {
+		const authMiddleware = new AuthMiddleware(this.configService.get('JWT_SECRET'));
+
 		this.app.use(bodyParser.json());
+		this.app.use(authMiddleware.execute.bind(authMiddleware));
 	}
 
 	private useRoutes(): void {

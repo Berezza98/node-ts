@@ -36,4 +36,12 @@ export default class UserService implements IUsersService {
 
 		return await user.comparePasswords(password);
 	}
+
+	async getUserInfo(email: string): Promise<UserModel | null> {
+		const user = await this.usersRepository.find(email);
+
+		if (!user) return null;
+
+		return user;
+	}
 }
